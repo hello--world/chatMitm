@@ -77,16 +77,25 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: release
+          path: artifacts
 
       - name: Get tag name
         id: tag
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # 将所有平台的二进制文件复制到 release 目录
+          find artifacts -type f -name "chatMitm-*" -exec cp {} release/ \;
+          # 列出文件确认
+          ls -lh release/
+
       - name: Create checksums
         run: |
           cd release
           sha256sum * > checksums.txt
+          cat checksums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
