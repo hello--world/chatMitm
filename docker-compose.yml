@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   chatmitm:
-    image: ghcr.io/hello--world/chatmitm:latest
+    image: ghcr.io/hello--world/chatmitm:v1.0.0
     container_name: chatmitm
     ports:
       - "9080:9080"  # 代理端口

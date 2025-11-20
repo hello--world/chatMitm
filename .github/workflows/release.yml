@@ -1,0 +1,142 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 只有带 v 前缀的 tag 才触发构建
+  workflow_dispatch:  # 保留手动触发功能
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+          - goos: windows
+            goarch: arm64
+            ext: ".exe"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o chatMitm${{ matrix.ext }} main.go
+          mkdir -p release
+          mv chatMitm${{ matrix.ext }} release/chatMitm-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatMitm-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: release/chatMitm-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+
+      - name: Get tag name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/*
+          name: Release ${{ steps.tag.outputs.tag }}
+          body: |
+            ## ChatMitm ${{ steps.tag.outputs.tag }}
+
+            流式接口拦截工具 - 支持拦截并保存任意流式接口（SSE、流式 JSON 等）的响应数据。
+
+            ### 下载
+
+            选择适合你系统的二进制文件：
+
+            - **Linux AMD64**: `chatMitm-linux-amd64`
+            - **Linux ARM64**: `chatMitm-linux-arm64`
+            - **macOS AMD64**: `chatMitm-darwin-amd64`
+            - **macOS ARM64** (Apple Silicon): `chatMitm-darwin-arm64`
+            - **Windows AMD64**: `chatMitm-windows-amd64.exe`
+            - **Windows ARM64**: `chatMitm-windows-arm64.exe`
+
+            ### 使用方法
+
+            #### Linux/macOS
+
+            ```bash
+            # 下载并设置执行权限
+            chmod +x chatMitm-linux-amd64
+            ./chatMitm-linux-amd64
+            ```
+
+            #### Windows
+
+            ```cmd
+            chatMitm-windows-amd64.exe
+            ```
+
+            ### 验证
+
+            下载后可以使用以下命令验证文件完整性：
+
+            ```bash
+            sha256sum -c checksums.txt
+            ```
+
+            ### 完整变更日志
+
+            查看 [GitHub Releases](https://github.com/hello--world/chatMitm/releases) 获取完整变更日志。
+          draft: false
+          prerelease: false
+

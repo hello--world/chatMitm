@@ -4,6 +4,7 @@ chatMitm
 *.dll
 *.so
 *.dylib
+release/
 
 # Go 相关
 *.test

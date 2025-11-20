@@ -12,13 +12,72 @@
 
 ## 安装
 
-### 方式一：使用 Docker（推荐）
+### 方式一：下载预编译二进制（推荐）
+
+#### 从 GitHub Releases 下载
+
+访问 [GitHub Releases](https://github.com/hello--world/chatMitm/releases) 下载适合你系统的二进制文件：
+
+- **Linux AMD64**: `chatMitm-linux-amd64`
+- **Linux ARM64**: `chatMitm-linux-arm64`
+- **macOS AMD64**: `chatMitm-darwin-amd64`
+- **macOS ARM64** (Apple Silicon): `chatMitm-darwin-arm64`
+- **Windows AMD64**: `chatMitm-windows-amd64.exe`
+- **Windows ARM64**: `chatMitm-windows-arm64.exe`
+
+#### 使用方法
+
+**Linux/macOS:**
+
+```bash
+# 下载
+wget https://github.com/hello--world/chatMitm/releases/latest/download/chatMitm-linux-amd64
+
+# 设置执行权限
+chmod +x chatMitm-linux-amd64
+
+# 运行
+./chatMitm-linux-amd64
+```
+
+**Windows:**
+
+```cmd
+# 下载后直接运行
+chatMitm-windows-amd64.exe
+```
+
+**使用 curl 下载（Linux/macOS）:**
+
+```bash
+# 自动检测最新版本并下载
+curl -L https://github.com/hello--world/chatMitm/releases/latest/download/chatMitm-linux-amd64 -o chatMitm
+chmod +x chatMitm
+./chatMitm
+```
+
+### 方式二：使用 Docker
 
 #### 从 GitHub Container Registry 拉取镜像
 
+镜像发布在 [GitHub Container Registry](https://github.com/hello--world/chatMitm/pkgs/container/chatmitm)，可以使用以下命令拉取：
+
 ```bash
-docker pull ghcr.io/hello--world/chatmitm:latest
+# 拉取最新版本
+docker pull ghcr.io/hello--world/chatmitm:v1.0.0
+
+# 或拉取主版本（推荐）
+docker pull ghcr.io/hello--world/chatmitm:v1
+
+# 或拉取完整版本号
+docker pull ghcr.io/hello--world/chatmitm:v1.0
 ```
+
+> **注意**：由于 GitHub Container Registry 的权限设置，首次拉取可能需要登录：
+> ```bash
+> echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+> ```
+> 或者使用个人访问令牌（PAT）进行认证。
 
 #### 运行容器
 
@@ -29,7 +88,7 @@ docker run -d \
   -p 9081:9081 \
   -v $(pwd)/stream_data:/app/stream_data \
   -v mitmproxy-certs:/home/appuser/.mitmproxy \
-  ghcr.io/hello--world/chatmitm:latest
+  ghcr.io/hello--world/chatmitm:v1.0.0
 ```
 
 > **注意**：证书会保存在 Docker volume `mitmproxy-certs` 中。如果需要访问证书文件，可以使用：
@@ -37,33 +96,47 @@ docker run -d \
 > docker run --rm -v mitmproxy-certs:/data alpine cat /data/mitmproxy-ca-cert.pem > mitmproxy-ca-cert.pem
 > ```
 
-#### 使用 Docker Compose
+#### 使用 Docker Compose（推荐）
 
-创建 `docker-compose.yml`：
+项目已包含 `docker-compose.yml` 文件，直接运行：
+
+```bash
+# 拉取最新镜像并启动
+docker-compose pull
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+`docker-compose.yml` 配置：
 
 ```yaml
 version: '3.8'
 
 services:
   chatmitm:
-    image: ghcr.io/hello--world/chatmitm:latest
+    image: ghcr.io/hello--world/chatmitm:v1.0.0
     container_name: chatmitm
     ports:
-      - "9080:9080"
-      - "9081:9081"
+      - "9080:9080"  # 代理端口
+      - "9081:9081"  # Web 界面端口
     volumes:
-      - ./stream_data:/app/stream_data
-      - ~/.mitmproxy:/root/.mitmproxy
+      - ./stream_data:/app/stream_data  # 流式数据保存目录
+      - mitmproxy-certs:/home/appuser/.mitmproxy  # 证书目录（持久化）
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+
+volumes:
+  mitmproxy-certs:
+    driver: local
 ```
 
-运行：
-
-```bash
-docker-compose up -d
-```
-
-### 方式二：从源码编译
+### 方式三：从源码编译
 
 #### 前置要求
 
@@ -244,19 +317,79 @@ interceptor := NewStreamInterceptor("./custom_output_dir")
 
 MIT License
 
-## Docker 镜像
+## 下载和安装
 
-### 从 GitHub Container Registry 拉取
+### GitHub Releases
+
+所有预编译的二进制文件都发布在 [GitHub Releases](https://github.com/hello--world/chatMitm/releases)。
+
+#### 快速下载脚本
+
+**Linux/macOS:**
 
 ```bash
-docker pull ghcr.io/hello--world/chatmitm:latest
+# 自动下载最新版本（Linux AMD64）
+VERSION=$(curl -s https://api.github.com/repos/hello--world/chatMitm/releases/latest | grep tag_name | cut -d '"' -f 4)
+curl -L https://github.com/hello--world/chatMitm/releases/download/${VERSION}/chatMitm-linux-amd64 -o chatMitm
+chmod +x chatMitm
 ```
 
-### 查看可用标签
+**Windows (PowerShell):**
 
-访问 [GitHub Packages](https://github.com/hello--world/chatMitm/pkgs/container/chatmitm) 查看所有可用版本。
+```powershell
+# 下载最新版本
+$version = (Invoke-RestMethod https://api.github.com/repos/hello--world/chatMitm/releases/latest).tag_name
+Invoke-WebRequest -Uri "https://github.com/hello--world/chatMitm/releases/download/$version/chatMitm-windows-amd64.exe" -OutFile "chatMitm.exe"
+```
 
-### 构建镜像
+#### 验证文件完整性
+
+下载后可以使用 checksums.txt 验证文件：
+
+```bash
+# 下载 checksums.txt
+curl -L https://github.com/hello--world/chatMitm/releases/latest/download/checksums.txt -o checksums.txt
+
+# 验证
+sha256sum -c checksums.txt
+```
+
+### Docker 镜像
+
+### GitHub Container Registry
+
+Docker 镜像已发布到 [GitHub Container Registry](https://github.com/hello--world/chatMitm/pkgs/container/chatmitm)：
+
+**镜像地址**：`ghcr.io/hello--world/chatmitm`
+
+### 可用版本标签
+
+- `v1.0.0` - 完整版本号（推荐用于生产环境）
+- `v1.0` - 主版本.次版本（自动指向最新的 1.0.x 版本）
+- `v1` - 主版本（自动指向最新的 1.x.x 版本）
+
+### 查看所有可用版本
+
+访问 [GitHub Packages 页面](https://github.com/hello--world/chatMitm/pkgs/container/chatmitm) 查看所有已发布的版本。
+
+### 认证说明
+
+如果遇到拉取权限问题，需要先登录 GitHub Container Registry：
+
+```bash
+# 使用 GitHub Personal Access Token (PAT)
+echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+
+# 或者交互式登录
+docker login ghcr.io
+```
+
+创建 PAT 的方法：
+1. 访问 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. 创建新 token，勾选 `read:packages` 权限
+3. 使用 token 登录
+
+### 本地构建镜像
 
 如果你想自己构建镜像：
 
