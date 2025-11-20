@@ -1,0 +1,26 @@
+# 编译产物
+chatMitm
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go 相关
+*.test
+*.out
+go.work
+
+# 流式数据保存目录
+stream_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
