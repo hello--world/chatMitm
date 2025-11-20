@@ -12,19 +12,70 @@
 
 ## 安装
 
-### 前置要求
+### 方式一：使用 Docker（推荐）
 
-- Go 1.21 或更高版本
+#### 从 GitHub Container Registry 拉取镜像
 
-### 安装依赖
+```bash
+docker pull ghcr.io/hello--world/chatmitm:latest
+```
+
+#### 运行容器
+
+```bash
+docker run -d \
+  --name chatmitm \
+  -p 9080:9080 \
+  -p 9081:9081 \
+  -v $(pwd)/stream_data:/app/stream_data \
+  -v mitmproxy-certs:/home/appuser/.mitmproxy \
+  ghcr.io/hello--world/chatmitm:latest
+```
+
+> **注意**：证书会保存在 Docker volume `mitmproxy-certs` 中。如果需要访问证书文件，可以使用：
+> ```bash
+> docker run --rm -v mitmproxy-certs:/data alpine cat /data/mitmproxy-ca-cert.pem > mitmproxy-ca-cert.pem
+> ```
+
+#### 使用 Docker Compose
+
+创建 `docker-compose.yml`：
+
+```yaml
+version: '3.8'
+
+services:
+  chatmitm:
+    image: ghcr.io/hello--world/chatmitm:latest
+    container_name: chatmitm
+    ports:
+      - "9080:9080"
+      - "9081:9081"
+    volumes:
+      - ./stream_data:/app/stream_data
+      - ~/.mitmproxy:/root/.mitmproxy
+    restart: unless-stopped
+```
+
+运行：
+
+```bash
+docker-compose up -d
+```
+
+### 方式二：从源码编译
+
+#### 前置要求
+
+- Go 1.22 或更高版本
+
+#### 安装依赖
 
 ```bash
 go mod download
 ```
 
-## 使用方法
-
-### 1. 启动代理服务器
+#### 启动代理服务器
 
 ```bash
 go run main.go
@@ -52,6 +103,21 @@ Web 界面: http://127.0.0.1:9081
 ```
 
 ### 2. 安装 HTTPS 证书（重要）
+
+#### 使用 Docker 时获取证书
+
+证书保存在 Docker volume 中，可以通过以下方式获取：
+
+```bash
+# 从 volume 中复制证书到当前目录
+docker run --rm -v mitmproxy-certs:/data alpine cat /data/mitmproxy-ca-cert.pem > mitmproxy-ca-cert.pem
+```
+
+或者如果使用 docker-compose，证书在 volume `mitmproxy-certs` 中：
+
+```bash
+docker-compose exec chatmitm cat /home/appuser/.mitmproxy/mitmproxy-ca-cert.pem > mitmproxy-ca-cert.pem
+```
 
 为了拦截 HTTPS 流量，需要安装根证书：
 
@@ -177,6 +243,26 @@ interceptor := NewStreamInterceptor("./custom_output_dir")
 ## License
 
 MIT License
+
+## Docker 镜像
+
+### 从 GitHub Container Registry 拉取
+
+```bash
+docker pull ghcr.io/hello--world/chatmitm:latest
+```
+
+### 查看可用标签
+
+访问 [GitHub Packages](https://github.com/hello--world/chatMitm/pkgs/container/chatmitm) 查看所有可用版本。
+
+### 构建镜像
+
+如果你想自己构建镜像：
+
+```bash
+docker build -t chatmitm:latest .
+```
 
 ## 参考
 

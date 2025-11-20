@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  chatmitm:
+    image: ghcr.io/hello--world/chatmitm:latest
+    container_name: chatmitm
+    ports:
+      - "9080:9080"  # 代理端口
+      - "9081:9081"  # Web 界面端口
+    volumes:
+      - ./stream_data:/app/stream_data  # 流式数据保存目录
+      - mitmproxy-certs:/home/appuser/.mitmproxy  # 证书目录（持久化）
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+
+volumes:
+  mitmproxy-certs:
+    driver: local
+

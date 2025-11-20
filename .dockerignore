@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# 编译产物
+chatMitm
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 数据目录
+stream_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试文件
+*_test.go
+
+# 文档
+README.md
+*.md
+
